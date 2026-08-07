@@ -41,6 +41,15 @@ With the projectile owner attributed, OPAC treats a cannon shot like an action b
 its firer, so these groups grant the firer's own claim access while everyone else's
 claims stay protected.
 
+## Sub-level (VS2 / Sable) compatibility
+
+CBC's `canDamageTerrain` hook maps the impact position through
+`CBCCompatTransformers.transformBlockPos` before checking damage, which is how CBC
+supports Valkyrien Skies 2 / Sable sub-levels (real blocks stored at extreme
+coordinates in the same level). The block-penetration mixins apply the same
+transform before querying OPAC, so claim checks use world-space coordinates. On a
+normal world this transform is an identity no-op.
+
 ## Known limitations
 
 - **Explosion block damage** (HE/impact/mortar shells) uses an anonymous accessor,

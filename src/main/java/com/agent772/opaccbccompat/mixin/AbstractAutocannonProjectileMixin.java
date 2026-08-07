@@ -12,12 +12,15 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 
+import rbasamoyai.createbigcannons.CBCCompatTransformers;
 import rbasamoyai.createbigcannons.munitions.autocannon.AbstractAutocannonProjectile;
 
 /**
  * Routes autocannon round penetration through OPAC, mirroring the big-cannon
  * behaviour: protected blocks become unbreakable so the round stops instead of
- * chewing through claimed terrain.
+ * chewing through claimed terrain. The pre-transform position is mapped through
+ * {@link CBCCompatTransformers#transformBlockPos} to query OPAC in world space,
+ * matching what {@code canDamageTerrain} does internally.
  */
 @Mixin(AbstractAutocannonProjectile.class)
 public abstract class AbstractAutocannonProjectileMixin {
@@ -29,9 +32,11 @@ public abstract class AbstractAutocannonProjectileMixin {
         if (!original.call(level, pos)) {
             return false;
         }
-        if (level instanceof ServerLevel serverLevel
-                && OPACBridge.blocksBlockDamage((Projectile) (Object) this, serverLevel, pos)) {
-            return false;
+        if (level instanceof ServerLevel serverLevel) {
+            BlockPos realPos = CBCCompatTransformers.transformBlockPos(level, pos);
+            if (OPACBridge.blocksBlockDamage((Projectile) (Object) this, serverLevel, realPos)) {
+                return false;
+            }
         }
         return true;
     }

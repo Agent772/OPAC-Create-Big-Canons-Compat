@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 
+import rbasamoyai.createbigcannons.CBCCompatTransformers;
 import rbasamoyai.createbigcannons.munitions.big_cannon.AbstractBigCannonProjectile;
 
 /**
@@ -19,6 +20,12 @@ import rbasamoyai.createbigcannons.munitions.big_cannon.AbstractBigCannonProject
  * OPAC. When a claim protects the block, {@code canDamageTerrain} is forced to
  * false, which CBC treats as an unbreakable block: the shell stops or bounces but
  * the block stays intact.
+ *
+ * <p>{@code canDamageTerrain} internally maps {@code pos} through
+ * {@link CBCCompatTransformers#transformBlockPos} before firing its own damage
+ * event. Wrapping the call gives us the pre-transform position, so we apply the
+ * same transform to query OPAC in world space (identity on normal worlds; maps
+ * plotgrid to world coordinates on Sable/VS2 sub-levels).
  */
 @Mixin(AbstractBigCannonProjectile.class)
 public abstract class AbstractBigCannonProjectileMixin {
@@ -30,9 +37,11 @@ public abstract class AbstractBigCannonProjectileMixin {
         if (!original.call(level, pos)) {
             return false;
         }
-        if (level instanceof ServerLevel serverLevel
-                && OPACBridge.blocksBlockDamage((Projectile) (Object) this, serverLevel, pos)) {
-            return false;
+        if (level instanceof ServerLevel serverLevel) {
+            BlockPos realPos = CBCCompatTransformers.transformBlockPos(level, pos);
+            if (OPACBridge.blocksBlockDamage((Projectile) (Object) this, serverLevel, realPos)) {
+                return false;
+            }
         }
         return true;
     }
