@@ -135,6 +135,10 @@ dependencies {
 
     // Create: Big Cannons - required dependency (projectile block/entity damage)
     implementation("maven.modrinth:create-big-cannons:${cbc_version}") { transitive = false }
+
+    // Ritchie's Projectile Library - transitive dependency of CBC. Needed on the compile
+    // classpath so the shrapnel/flak burst mixins can reference ProjectileBurst types.
+    compileOnly("maven.modrinth:rpl:${rpl_version}") { transitive = false }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

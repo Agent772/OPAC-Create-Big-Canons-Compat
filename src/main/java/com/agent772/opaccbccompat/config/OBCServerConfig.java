@@ -11,10 +11,20 @@ public final class OBCServerConfig {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.push("protection");
         PROTECT_BLOCKS = b
-                .comment("If true (default), Create Big Cannons projectiles cannot destroy blocks inside OPAC chunk claims.")
+                .comment(
+                        "Master switch for CBC projectile block protection.",
+                        "When true (default), CBC block destruction is routed through OPAC so that",
+                        "your existing per-claim block-protection options (and any 'blockAccessEntityGroups'",
+                        "you define in OPAC's server config) decide whether cannon fire may break blocks.",
+                        "When false, the bridge is inert and cannons break blocks exactly like vanilla CBC.")
                 .define("protectBlocks", true);
         PROTECT_ENTITIES = b
-                .comment("If true (default), Create Big Cannons projectiles cannot damage entities inside OPAC chunk claims.")
+                .comment(
+                        "Master switch for CBC projectile entity protection.",
+                        "When true (default), CBC entity damage is routed through OPAC so that",
+                        "your existing per-claim entity-protection options (and any 'entityAccessEntityGroups'",
+                        "you define in OPAC's server config) decide whether cannon fire may hurt entities.",
+                        "When false, the bridge is inert and cannons damage entities exactly like vanilla CBC.")
                 .define("protectEntities", true);
         b.pop();
 

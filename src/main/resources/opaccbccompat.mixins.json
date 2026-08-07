@@ -4,7 +4,18 @@
   "package": "com.agent772.opaccbccompat.mixin",
   "compatibilityLevel": "JAVA_21",
   "refmap": "opaccbccompat.refmap.json",
-  "mixins": [],
+  "mixins": [
+    "AbstractAutocannonProjectileMixin",
+    "AbstractBigCannonProjectileMixin",
+    "AbstractCannonProjectileMixin",
+    "CreateBigCannonsMixin",
+    "ExplosionBlockDamageMixin",
+    "FlakAutocannonProjectileMixin",
+    "MountedAutocannonContraptionMixin",
+    "MountedBigCannonContraptionMixin",
+    "ShrapnelBurstMixin",
+    "ShrapnelShellProjectileMixin"
+  ],
   "client": [],
   "injectors": {
     "defaultRequire": 1
