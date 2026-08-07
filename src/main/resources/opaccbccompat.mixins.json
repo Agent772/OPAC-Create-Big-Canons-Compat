@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "com.agent772.opaccbccompat.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "opaccbccompat.refmap.json",
+  "mixins": [],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

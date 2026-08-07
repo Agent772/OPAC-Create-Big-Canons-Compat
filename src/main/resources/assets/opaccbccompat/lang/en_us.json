@@ -1,0 +1,8 @@
+{
+  "opaccbccompat.configuration.title": "OPAC - Create: Big Cannons Compat",
+  "opaccbccompat.configuration.protection": "Protection",
+  "opaccbccompat.configuration.protectBlocks": "Protect Blocks",
+  "opaccbccompat.configuration.protectBlocks.tooltip": "Prevent Create Big Cannons projectiles from destroying blocks inside OPAC chunk claims.",
+  "opaccbccompat.configuration.protectEntities": "Protect Entities",
+  "opaccbccompat.configuration.protectEntities.tooltip": "Prevent Create Big Cannons projectiles from damaging entities inside OPAC chunk claims."
+}
