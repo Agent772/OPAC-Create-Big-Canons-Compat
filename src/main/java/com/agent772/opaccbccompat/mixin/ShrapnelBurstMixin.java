@@ -5,12 +5,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.agent772.opaccbccompat.compat.AttributedDamageSource;
 import com.agent772.opaccbccompat.compat.OPACBridge;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
@@ -26,7 +28,9 @@ import rbasamoyai.ritchiesprojectilelib.projectile_burst.ProjectileBurst;
  * covers flak bursts, which extend {@link ShrapnelBurst} and inherit these hit
  * methods. The terrain position is mapped through
  * {@link CBCCompatTransformers#transformBlockPos} to query OPAC in world space,
- * matching what {@code canDamageTerrain} does internally.
+ * matching what {@code canDamageTerrain} does internally. The sub-projectile
+ * damage source is attributed (see {@link AttributedDamageSource}) so OPAC's own
+ * hurt-event check does not anonymously block hits the bridge allowed.
  */
 @Mixin(ShrapnelBurst.class)
 public abstract class ShrapnelBurstMixin {
@@ -55,5 +59,12 @@ public abstract class ShrapnelBurstMixin {
         if (OPACBridge.blocksEntityDamage(self.getOwner(), self, result.getEntity(), "sub-projectile hit")) {
             ci.cancel();
         }
+    }
+
+    @WrapOperation(
+            method = "onSubProjectileHitEntity(Lnet/minecraft/world/phys/EntityHitResult;Lrbasamoyai/ritchiesprojectilelib/projectile_burst/ProjectileBurst$SubProjectile;)V",
+            at = @At(value = "INVOKE", target = "Lrbasamoyai/createbigcannons/munitions/big_cannon/shrapnel/ShrapnelBurst;getDamageSource()Lnet/minecraft/world/damagesource/DamageSource;"))
+    private DamageSource opaccbccompat$attributeDamageSource(ShrapnelBurst instance, Operation<DamageSource> original) {
+        return AttributedDamageSource.attribute(original.call(instance), (Projectile) (Object) this);
     }
 }

@@ -26,6 +26,16 @@ Fired projectiles are tagged with the player who fired them (CBC leaves them
 anonymous), so OPAC's party/ally exceptions and owner redirection apply to cannon
 fire the same way they do to any other player action.
 
+CBC's damage *sources* are wrapped the same way. OPAC independently re-checks
+every entity hurt on the server (its `LivingIncomingDamageEvent` handler) using
+the entities carried by the damage source — and CBC's `CannonDamageSource`
+carries none, so that final check used to see every cannon hurt as anonymous and
+block it in any protected claim, no matter what the claim's options or the
+bridge's own checks said. The bridge wraps CBC's damage sources so they carry
+the projectile (and its owner, when attributed), which makes OPAC's final check
+consult the same exception groups and owner redirection as the rest of the
+bridge. Armor-bypass behaviour of the original CBC source is preserved.
+
 ## Recommended OPAC server config
 
 To let cannons fire freely *inside your own claim* while still protecting other
