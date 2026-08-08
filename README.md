@@ -62,6 +62,25 @@ access* (e.g. "Mine (CBC): Everyone" lets anyone's cannons break blocks even
 while "Allow Blocks By Players" is Nobody); they cannot revoke access granted by
 a general option.
 
+Note that adding a group to the server config only *creates* the per-claim
+option — its value still defaults to **Nobody**. After a restart, open the
+claim config and set "Mine (CBC)" / "Attack By (CBC)" to the players you want
+to allow.
+
+### Explosion entity damage
+
+CBC shells hurt entities in two ways: a direct projectile hit and the shell's
+explosion (HE, AP and impact explosions). Direct hits go through OPAC's normal
+entity-attack check, which consults the exception groups. Explosions, however,
+are filtered by OPAC's *own* explosion handler, which only looks at the
+general options — "Allow Entities By Explosions" (off by default) and "Allow
+Entities By Players" — and never consults entity-access groups, so "Attack By
+(CBC)" alone could not permit explosion kills. The bridge therefore re-checks
+every entity that OPAC's explosion filter removed through the attributed
+attack path (the same one direct hits use) and restores the ones it allows.
+The bridge only ever *restores* entities — anything OPAC's own handler
+permits (e.g. "Allow Entities By Explosions": on) stays permitted.
+
 ## Sub-level (VS2 / Sable) compatibility
 
 CBC's `canDamageTerrain` hook maps the impact position through
@@ -125,10 +144,12 @@ Disable it again on production servers — a single shot can query many blocks.
 
 ## Known limitations
 
-- **Explosion block damage** (HE/impact/mortar shells) uses an anonymous accessor,
-  because CBC creates those explosions without a source entity. Explosions are
-  therefore protected in any claim whose OPAC options protect blocks, but ally /
-  owner exceptions do not apply to explosion *block* destruction.
+- **Flak, fluid, mortar-stone, shrapnel and smoke explosions** are created by CBC
+  without a source entity, so their block/entity damage uses an anonymous
+  accessor: they are blocked inside protected claims regardless of who fired
+  them, and ally / owner / group exceptions do not apply. HE, AP and impact
+  explosions *do* carry the projectile as their source and are fully attributed
+  to the firing player.
 - **Fluid shell bursts** apply their effect through CBC's fluid-effect registry
   rather than the standard block/entity path and are not currently gated.
 - **Drop-mortar rounds** are fired without a rider context and are attributed
