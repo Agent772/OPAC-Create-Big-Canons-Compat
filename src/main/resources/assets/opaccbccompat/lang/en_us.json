@@ -4,5 +4,7 @@
   "opaccbccompat.configuration.protectBlocks": "Protect Blocks",
   "opaccbccompat.configuration.protectBlocks.tooltip": "Master switch: route Create: Big Cannons block destruction through OPAC. When on, whether a claim is actually protected is decided by OPAC's own per-claim block-protection options and exception groups. When off, cannons break blocks everywhere.",
   "opaccbccompat.configuration.protectEntities": "Protect Entities",
-  "opaccbccompat.configuration.protectEntities.tooltip": "Master switch: route Create: Big Cannons entity damage through OPAC. When on, whether an entity is actually protected is decided by OPAC's own per-claim entity-protection options and exception groups. When off, cannons damage entities everywhere."
+  "opaccbccompat.configuration.protectEntities.tooltip": "Master switch: route Create: Big Cannons entity damage through OPAC. When on, whether an entity is actually protected is decided by OPAC's own per-claim entity-protection options and exception groups. When off, cannons damage entities everywhere.",
+  "opaccbccompat.configuration.debugLogging": "Debug Logging",
+  "opaccbccompat.configuration.debugLogging.tooltip": "Log every OPAC protection verdict for CBC projectile damage at INFO level, including the queried position, the projectile, its resolved owner, the claim and why the action was allowed or blocked. Intended for diagnosing protection setups; disable on production servers, as a single shot can query many blocks (and it writes player names and UUIDs to the log)."
 }

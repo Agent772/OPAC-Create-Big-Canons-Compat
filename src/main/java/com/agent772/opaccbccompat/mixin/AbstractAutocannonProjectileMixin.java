@@ -35,6 +35,9 @@ public abstract class AbstractAutocannonProjectileMixin {
         if (level instanceof ServerLevel serverLevel) {
             BlockPos realPos = CBCCompatTransformers.transformBlockPos(level, pos);
             if (OPACBridge.blocksBlockDamage((Projectile) (Object) this, serverLevel, realPos)) {
+                // Resync the pre-transform block CBC predicted client-side so the
+                // protected block does not leave a ghost hole (see resyncBlock).
+                OPACBridge.resyncBlock(serverLevel, pos);
                 return false;
             }
         }

@@ -34,6 +34,10 @@ public abstract class ExplosionBlockDamageMixin {
         if (level instanceof ServerLevel serverLevel) {
             Explosion self = (Explosion) (Object) this;
             if (OPACBridge.blocksBlockDamage(self.getDirectSourceEntity(), serverLevel, pos)) {
+                // CBC applies these cosmetic edits client-side too, so a server-only
+                // cancel would ghost; resync the block. editBlock receives the
+                // world-space pos, so no transform is needed here.
+                OPACBridge.resyncBlock(serverLevel, pos);
                 ci.cancel();
             }
         }

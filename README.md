@@ -91,6 +91,18 @@ attack path (the same one direct hits use) and restores the ones it allows.
 The bridge only ever *restores* entities — anything OPAC's own handler
 permits (e.g. "Allow Entities By Explosions": on) stays permitted.
 
+Because it re-checks through the *attack* path, a cannon explosion is treated
+as a **player attack**: the general **"Allow Entities By Players"** option
+governs it too, exactly as it does for block damage. This has a deliberate
+consequence: a claim with **"Allow Entities By Explosions": Nobody** but
+**"Allow Entities By Players": Everyone** (and no restricting "Attack By (CBC)")
+**will** have its entities killed by cannon explosions, because cannon fire
+counts as a player attack rather than a generic explosion. To block explosion
+kills while still allowing player melee, set **"Attack By (CBC)": Nobody** and
+keep "Allow Entities By Players" from granting access. If you want cannon
+explosions to strictly follow the "Allow Entities By Explosions" option instead,
+that is not currently supported — file an issue if you need it.
+
 ## Sub-level (VS2 / Sable) compatibility
 
 CBC's `canDamageTerrain` hook maps the impact position through
@@ -130,8 +142,10 @@ predicts the destruction locally to hide latency. When OPAC blocks a penetration
 on the server, the client has already removed the block, which used to leave a
 client-only "ghost hole" in the wall (walk up to it, relog, or F3+A and the block
 reappears — it was never gone on the server). The bridge now resends the real
-block state whenever it blocks a penetration, so the block may flicker for a
-moment on impact but stays intact.
+block state whenever it blocks a hit, so the block may flicker for a moment on
+impact but stays intact. This resync covers **all** client-predicted block paths:
+big-cannon and autocannon penetration, shrapnel terrain hits, and the cosmetic
+cracking/denting CBC explosions apply along their blast.
 
 ### Debug logging
 
@@ -158,6 +172,9 @@ CBC blast, an extra summary line reports how many the attributed re-check
 restored.
 
 Disable it again on production servers — a single shot can query many blocks.
+Debug lines also write **player names and UUIDs** to the server log; this is the
+same personal data most server logs already contain, but keep it in mind for
+GDPR-conscious deployments.
 
 ## Known limitations
 

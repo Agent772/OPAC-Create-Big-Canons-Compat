@@ -2,6 +2,7 @@ package com.agent772.opaccbccompat.compat;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
@@ -37,6 +38,13 @@ import xaero.pac.common.server.player.config.api.v2.PlayerConfigOptions;
  */
 public final class OPACBridge {
 
+    /**
+     * Latches the first OPAC query failure of the session so it can be surfaced at
+     * WARN once (protection silently failing open is the worst failure mode to
+     * hide); subsequent failures stay at debug to avoid log spam.
+     */
+    private static final AtomicBoolean QUERY_FAILURE_WARNED = new AtomicBoolean(false);
+
     private OPACBridge() {}
 
     /**
@@ -49,7 +57,33 @@ public final class OPACBridge {
     public static void attributeOwner(Entity projectile, @Nullable Entity owner) {
         if (owner != null && projectile instanceof Projectile p && p.getOwner() == null) {
             p.setOwner(owner);
+        } else if (OBCServerConfig.debugLogging()) {
+            String reason;
+            if (owner == null) {
+                reason = "no firing player (e.g. redstone-triggered cannon) - projectile stays anonymous";
+            } else if (!(projectile instanceof Projectile)) {
+                reason = "spawned entity is not a Projectile (e.g. an ejected casing)";
+            } else {
+                reason = "projectile already has an owner";
+            }
+            OPACBigCannonsCompat.LOGGER.debug(
+                    "[OPAC-CBC] owner attribution skipped for {}: {}", describe(projectile), reason);
         }
+    }
+
+    /**
+     * Resends the real block state at {@code pos} to tracking clients. CBC predicts
+     * block destruction on the client (both penetration and cosmetic explosion
+     * edits set the block locally), so blocking it only on the server leaves a
+     * client-only ghost hole until the next relog. This resync makes the protected
+     * block reappear immediately.
+     *
+     * <p>Callers pass the <em>pre-transform</em> position (the block CBC actually
+     * predicted client-side), which on Sable/VS2 sub-levels differs from the
+     * world-space position used for the OPAC query.
+     */
+    public static void resyncBlock(ServerLevel level, BlockPos pos) {
+        level.getChunkSource().blockChanged(pos);
     }
 
     @Nullable
@@ -87,7 +121,10 @@ public final class OPACBridge {
             }
             return blocked;
         } catch (Throwable t) {
-            OPACBigCannonsCompat.LOGGER.debug("OPAC block-interaction query failed; allowing damage", t);
+            // Throwable (not Exception) is intentional: a broken OPAC relaunch or
+            // API change surfaces as LinkageError / NoClassDefFoundError, which we
+            // still want to fail open on rather than crash CBC.
+            warnQueryFailure("block-interaction", t);
             return false;
         }
     }
@@ -95,9 +132,11 @@ public final class OPACBridge {
     /**
      * Whether OPAC protects {@code target} from being damaged by the projectile.
      * The projectile's owner (if any) is used as the indirect accessor so that
-     * party/ally exceptions and owner redirection apply.
+     * party/ally exceptions and owner redirection apply. {@code projectile} may be
+     * {@code null} for source-less CBC explosions (flak, fluid, mortar-stone,
+     * smoke); OPAC tolerates a null direct entity, treating the hit as anonymous.
      */
-    public static boolean blocksEntityDamage(@Nullable Entity indirectOwner, Entity projectile, Entity target) {
+    public static boolean blocksEntityDamage(@Nullable Entity indirectOwner, @Nullable Entity projectile, Entity target) {
         return blocksEntityDamage(indirectOwner, projectile, target, "direct hit");
     }
 
@@ -106,7 +145,7 @@ public final class OPACBridge {
      * damage path ("direct hit", "sub-projectile hit", "explosion") in the debug
      * log so verdicts from different code paths can be told apart.
      */
-    public static boolean blocksEntityDamage(@Nullable Entity indirectOwner, Entity projectile, Entity target, String pathLabel) {
+    public static boolean blocksEntityDamage(@Nullable Entity indirectOwner, @Nullable Entity projectile, Entity target, String pathLabel) {
         if (!OBCServerConfig.protectEntities()) {
             return false;
         }
@@ -131,8 +170,24 @@ public final class OPACBridge {
             }
             return blocked;
         } catch (Throwable t) {
-            OPACBigCannonsCompat.LOGGER.debug("OPAC entity-interaction query failed; allowing damage", t);
+            warnQueryFailure("entity-interaction", t);
             return false;
+        }
+    }
+
+    /**
+     * Reports an OPAC query failure. The first failure of the session is logged at
+     * WARN because a persistent failure means protection has silently stopped
+     * working (every query fails open); later failures drop to debug to avoid spam.
+     */
+    private static void warnQueryFailure(String query, Throwable t) {
+        if (QUERY_FAILURE_WARNED.compareAndSet(false, true)) {
+            OPACBigCannonsCompat.LOGGER.warn(
+                    "OPAC {} query failed; allowing the damage (failing open). CBC projectile protection "
+                            + "is NOT being enforced for this query and may be broken - check for an OPAC "
+                            + "version mismatch. Further failures are logged at debug.", query, t);
+        } else {
+            OPACBigCannonsCompat.LOGGER.debug("OPAC {} query failed; allowing damage", query, t);
         }
     }
 

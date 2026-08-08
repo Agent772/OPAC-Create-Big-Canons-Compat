@@ -2,10 +2,13 @@ package com.agent772.opaccbccompat.compat;
 
 import com.agent772.opaccbccompat.config.OBCServerConfig;
 
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 
 /**
@@ -18,9 +21,11 @@ import net.minecraft.world.entity.projectile.Projectile;
  * the source restores attribution for that final check, so exception groups
  * (matched against the projectile's entity type) and owner redirection apply.
  *
- * <p>Tag queries are delegated to the wrapped source because
- * {@code CannonDamageSource} overrides {@link #is(TagKey)} to implement its
- * bypass-armor and always-kills-armor-stands behaviour.
+ * <p>Every behavioural override of {@code DamageSource} is delegated to the
+ * wrapped source so CBC's customisations (e.g. {@code CannonDamageSource}'s
+ * bypass-armor / always-kills-armor-stands tag behaviour, death message and
+ * difficulty scaling) are preserved rather than silently reverting to vanilla.
+ * Only the carried entities change.
  */
 public final class AttributedDamageSource extends DamageSource {
 
@@ -34,6 +39,21 @@ public final class AttributedDamageSource extends DamageSource {
     @Override
     public boolean is(TagKey<DamageType> tag) {
         return delegate.is(tag);
+    }
+
+    @Override
+    public boolean is(ResourceKey<DamageType> damageTypeKey) {
+        return delegate.is(damageTypeKey);
+    }
+
+    @Override
+    public boolean scalesWithDifficulty() {
+        return delegate.scalesWithDifficulty();
+    }
+
+    @Override
+    public Component getLocalizedDeathMessage(LivingEntity entity) {
+        return delegate.getLocalizedDeathMessage(entity);
     }
 
     /**
