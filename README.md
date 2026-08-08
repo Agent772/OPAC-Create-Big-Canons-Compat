@@ -50,6 +50,43 @@ coordinates in the same level). The block-penetration mixins apply the same
 transform before querying OPAC, so claim checks use world-space coordinates. On a
 normal world this transform is an identity no-op.
 
+## Testing and troubleshooting
+
+### Players with full chunk access always get through
+
+OPAC grants some players **full access** to a claim, and for them every action is
+allowed *before* the claim's protection options or exception groups are even
+consulted — exception groups can only grant access to players who lack it, never
+revoke it. A player has full access to a claim when:
+
+- they **own** the claim,
+- they are in **admin mode** (`/opm-admin`), or
+- the claim is a **server claim** and they are in server claiming mode with the
+  server claim permission (typically the operator who created the claim).
+
+Because projectiles are attributed to the player who fired them, the same applies
+to cannon fire: **if you can break a block by hand inside the claim, your cannon
+can break it too.** A quick equivalence check: try mining the block — if OPAC
+doesn't stop your pickaxe, it won't stop your shell either.
+
+**Test protection with a non-privileged account** (or leave admin / server
+claiming mode first), otherwise settings like "Break CBC: Nobody" will appear
+not to work.
+
+### Debug logging
+
+Set `debugLogging = true` in this mod's server config
+(`serverconfig/opaccbccompat-server.toml`) to log every OPAC verdict at INFO
+level:
+
+```
+[OPAC-CBC] block damage ALLOWED at 120, 64, -40 in minecraft:overworld | projectile=createbigcannons:shot_projectile[.../uuid] accessor=minecraft:player[Agent772/uuid] claim=... | accessor has FULL chunk access to this claim (claim owner, admin mode or server claiming mode) - OPAC allows before claim options or exception groups are checked
+```
+
+Each line shows the position, the projectile, the resolved accessor (the firing
+player), the claim at the position and *why* the action was allowed or blocked.
+Disable it again on production servers — a single shot can query many blocks.
+
 ## Known limitations
 
 - **Explosion block damage** (HE/impact/mortar shells) uses an anonymous accessor,

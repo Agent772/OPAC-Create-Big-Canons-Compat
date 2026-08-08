@@ -14,9 +14,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Explosion;
+import xaero.pac.common.claims.player.api.IPlayerChunkClaimAPI;
 import xaero.pac.common.server.api.OpenPACServerAPI;
 import xaero.pac.common.server.claims.protection.api.IChunkProtectionAPI;
 
@@ -70,13 +72,17 @@ public final class OPACBridge {
             if (protection == null) {
                 return false;
             }
-            return protection.onBlockInteraction(
+            boolean blocked = protection.onBlockInteraction(
                     source, InteractionHand.MAIN_HAND, ItemStack.EMPTY,
                     level, pos, Direction.UP,
                     true,   // breaking
                     false,  // messages
                     true    // targetExceptions (enables admin exception groups)
             );
+            if (OBCServerConfig.debugLogging()) {
+                logVerdict("block damage", protection, source, level, pos, blocked);
+            }
+            return blocked;
         } catch (Throwable t) {
             OPACBigCannonsCompat.LOGGER.debug("OPAC block-interaction query failed; allowing damage", t);
             return false;
@@ -100,17 +106,65 @@ public final class OPACBridge {
             if (protection == null) {
                 return false;
             }
-            return protection.onEntityInteraction(
+            boolean blocked = protection.onEntityInteraction(
                     indirectOwner, projectile, target,
                     ItemStack.EMPTY, InteractionHand.MAIN_HAND,
                     true,   // attack
                     false,  // messages
                     true    // targetExceptions
             );
+            if (OBCServerConfig.debugLogging()) {
+                logVerdict("entity damage (target " + describe(target) + ")",
+                        protection, projectile, level, target.blockPosition(), blocked);
+            }
+            return blocked;
         } catch (Throwable t) {
             OPACBigCannonsCompat.LOGGER.debug("OPAC entity-interaction query failed; allowing damage", t);
             return false;
         }
+    }
+
+    /**
+     * Logs a single OPAC verdict with enough context to explain it: the source
+     * projectile, its resolved owner, the claim at the position and - crucially -
+     * whether the owner has full chunk access. Full access (claim owner, admin
+     * mode, server claiming mode against a server claim) makes OPAC allow the
+     * action before per-claim options or exception groups are ever consulted,
+     * which is invisible without this log line.
+     */
+    private static void logVerdict(String action, IChunkProtectionAPI protection,
+                                   @Nullable Entity source, ServerLevel level, BlockPos pos, boolean blocked) {
+        try {
+            Entity accessor = source instanceof Projectile p && p.getOwner() != null ? p.getOwner() : source;
+            IPlayerChunkClaimAPI claim = OpenPACServerAPI.get(level.getServer())
+                    .getServerClaimsManager().get(level.dimension().location(), pos);
+            String reason;
+            if (blocked) {
+                reason = "blocked by the claim's protection options / exception groups";
+            } else if (claim == null) {
+                reason = "position is unclaimed (wilderness)";
+            } else if (accessor != null && protection.hasChunkAccess(protection.getConfig(claim), accessor)) {
+                reason = "accessor has FULL chunk access to this claim (claim owner, admin mode or "
+                        + "server claiming mode) - OPAC allows before claim options or exception groups are checked";
+            } else {
+                reason = "allowed by the claim's protection options / exception groups";
+            }
+            OPACBigCannonsCompat.LOGGER.info(
+                    "[OPAC-CBC] {} {} at {} in {} | projectile={} accessor={} claim={} | {}",
+                    action, blocked ? "BLOCKED" : "ALLOWED", pos.toShortString(),
+                    level.dimension().location(), describe(source), describe(accessor),
+                    claim == null ? "none" : claim.getPlayerId(), reason);
+        } catch (Throwable t) {
+            OPACBigCannonsCompat.LOGGER.debug("Failed to log OPAC verdict", t);
+        }
+    }
+
+    private static String describe(@Nullable Entity entity) {
+        if (entity == null) {
+            return "none";
+        }
+        return EntityType.getKey(entity.getType())
+                + "[" + entity.getName().getString() + "/" + entity.getUUID() + "]";
     }
 
     /**
