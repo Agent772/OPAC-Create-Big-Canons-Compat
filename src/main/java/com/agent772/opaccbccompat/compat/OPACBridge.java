@@ -21,6 +21,9 @@ import net.minecraft.world.level.Explosion;
 import xaero.pac.common.claims.player.api.IPlayerChunkClaimAPI;
 import xaero.pac.common.server.api.OpenPACServerAPI;
 import xaero.pac.common.server.claims.protection.api.IChunkProtectionAPI;
+import xaero.pac.common.server.player.config.api.v2.IPlayerConfigAPI;
+import xaero.pac.common.server.player.config.api.v2.IPlayerConfigOptionSpecAPI;
+import xaero.pac.common.server.player.config.api.v2.PlayerConfigOptions;
 
 /**
  * Bridge between Create: Big Cannons' custom projectile destruction and OPAC's
@@ -80,7 +83,7 @@ public final class OPACBridge {
                     true    // targetExceptions (enables admin exception groups)
             );
             if (OBCServerConfig.debugLogging()) {
-                logVerdict("block damage", protection, source, level, pos, blocked);
+                logVerdict("block damage", protection, source, level, pos, blocked, true);
             }
             return blocked;
         } catch (Throwable t) {
@@ -115,7 +118,7 @@ public final class OPACBridge {
             );
             if (OBCServerConfig.debugLogging()) {
                 logVerdict("entity damage (target " + describe(target) + ")",
-                        protection, projectile, level, target.blockPosition(), blocked);
+                        protection, projectile, level, target.blockPosition(), blocked, false);
             }
             return blocked;
         } catch (Throwable t) {
@@ -133,30 +136,88 @@ public final class OPACBridge {
      * which is invisible without this log line.
      */
     private static void logVerdict(String action, IChunkProtectionAPI protection,
-                                   @Nullable Entity source, ServerLevel level, BlockPos pos, boolean blocked) {
+                                   @Nullable Entity source, ServerLevel level, BlockPos pos, boolean blocked,
+                                   boolean blockAction) {
         try {
             Entity accessor = source instanceof Projectile p && p.getOwner() != null ? p.getOwner() : source;
             IPlayerChunkClaimAPI claim = OpenPACServerAPI.get(level.getServer())
                     .getServerClaimsManager().get(level.dimension().location(), pos);
+            IPlayerConfigAPI config = claim == null ? null : protection.getConfig(claim);
             String reason;
             if (blocked) {
                 reason = "blocked by the claim's protection options / exception groups";
             } else if (claim == null) {
                 reason = "position is unclaimed (wilderness)";
-            } else if (accessor != null && protection.hasChunkAccess(protection.getConfig(claim), accessor)) {
+            } else if (accessor != null && protection.hasChunkAccess(config, accessor)) {
                 reason = "accessor has FULL chunk access to this claim (claim owner, admin mode or "
                         + "server claiming mode) - OPAC allows before claim options or exception groups are checked";
             } else {
                 reason = "allowed by the claim's protection options / exception groups";
             }
+            String options = config == null ? "" : " | " + optionDiagnostics(level, config, blockAction);
             OPACBigCannonsCompat.LOGGER.info(
-                    "[OPAC-CBC] {} {} at {} in {} | projectile={} accessor={} claim={} | {}",
+                    "[OPAC-CBC] {} {} at {} in {} | projectile={} accessor={} claim={} | {}{}",
                     action, blocked ? "BLOCKED" : "ALLOWED", pos.toShortString(),
                     level.dimension().location(), describe(source), describe(accessor),
-                    claim == null ? "none" : claim.getPlayerId(), reason);
+                    claim == null ? "none" : claim.getPlayerId(), reason, options);
         } catch (Throwable t) {
             OPACBigCannonsCompat.LOGGER.debug("Failed to log OPAC verdict", t);
         }
+    }
+
+    private static final String GROUP_OPTION_ROOT = "playerConfig.claims.protection.exceptions.groups.entity.";
+
+    /**
+     * Summarizes the claim config values that decide a CBC verdict: the general
+     * "Allow Blocks/Entities By Players" option (which governs the redirected
+     * player action) and every entity-access exception group option that can
+     * additionally grant CBC projectiles access. Group options are listed with
+     * their UI label (e.g. "Mine (CBC)") so they can be matched to the claim
+     * config screen; if none exist, the OPAC server config has no such groups.
+     */
+    @SuppressWarnings("unchecked")
+    private static String optionDiagnostics(ServerLevel level, IPlayerConfigAPI config, boolean blockAction) {
+        StringBuilder sb = new StringBuilder("options:");
+        if (blockAction) {
+            sb.append(" blocksRedirect=").append(config.getEffective(PlayerConfigOptions.CLAIM_EXCEPTION_BLOCKS_REDIRECT));
+            sb.append(" allowBlocksByPlayers=").append(describeGroupValue(
+                    config.getEffective(PlayerConfigOptions.CLAIM_EXCEPTION_BLOCKS_BY_PLAYERS)));
+        } else {
+            sb.append(" entitiesRedirect=").append(config.getEffective(PlayerConfigOptions.CLAIM_EXCEPTION_ENTITIES_REDIRECT));
+            sb.append(" allowEntitiesByPlayers=").append(describeGroupValue(
+                    config.getEffective(PlayerConfigOptions.CLAIM_EXCEPTION_ENTITIES_BY_PLAYERS)));
+        }
+        String breakPrefix = GROUP_OPTION_ROOT + (blockAction ? "blockBreakAccess." : "entityAttackAccess.");
+        String fullPrefix = GROUP_OPTION_ROOT + (blockAction ? "blockAccess." : "entityAccess.");
+        String breakLabel = blockAction ? "Mine" : "Attack By";
+        String fullLabel = blockAction ? "Blocks" : "Entities By";
+        List<? extends IPlayerConfigOptionSpecAPI<?>> groupOptions = OpenPACServerAPI.get(level.getServer())
+                .getPlayerConfigManager().getAllOptionsStream()
+                .filter(o -> o.getId().startsWith(breakPrefix) || o.getId().startsWith(fullPrefix))
+                .toList();
+        if (groupOptions.isEmpty()) {
+            sb.append(" | no entity-access exception groups are defined - check the '")
+                    .append(blockAction ? "blockAccessEntityGroups" : "entityAccessEntityGroups")
+                    .append("' list in the OPAC server config");
+        } else {
+            for (IPlayerConfigOptionSpecAPI<?> o : groupOptions) {
+                boolean isBreak = o.getId().startsWith(breakPrefix);
+                String name = o.getId().substring(isBreak ? breakPrefix.length() : fullPrefix.length());
+                sb.append(" \"").append(isBreak ? breakLabel : fullLabel).append(" (").append(name).append(")\"=")
+                        .append(describeGroupValue(config.getEffective((IPlayerConfigOptionSpecAPI<String>) o)));
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String describeGroupValue(String value) {
+        return switch (value) {
+            case "E" -> "E(everyone)";
+            case "N" -> "N(nobody)";
+            case "P" -> "P(party)";
+            case "A" -> "A(party+allies)";
+            default -> value;
+        };
     }
 
     private static String describe(@Nullable Entity entity) {

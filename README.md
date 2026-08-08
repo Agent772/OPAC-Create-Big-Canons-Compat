@@ -41,6 +41,27 @@ With the projectile owner attributed, OPAC treats a cannon shot like an action b
 its firer, so these groups grant the firer's own claim access while everyone else's
 claims stay protected.
 
+These two lists create per-claim options that appear in the claim config UI as:
+
+- **"Mine (CBC)"** – from `blockAccessEntityGroups`: which players' CBC
+  projectiles may break blocks in the claim.
+- **"Attack By (CBC)"** – from `entityAccessEntityGroups`: which players' CBC
+  projectiles may damage entities in the claim.
+
+The lists take **entity** IDs. Take care not to put the entry into
+`blockExceptionGroups` instead — that list takes **block** IDs and creates a
+**"Break (CBC)"** option, which controls who may break *CBC's own blocks* (cannon
+parts) in the claim and has no effect on what cannon fire can destroy.
+
+These group options are checked *in addition to* OPAC's general exception
+options. Because projectiles are redirected to their firing player, the general
+**"Allow Blocks By Players"** / **"Allow Entities By Players"** options also
+apply to cannon fire: if one of those is set to Everyone, cannon damage is
+allowed regardless of the CBC group options. The CBC options only *grant extra
+access* (e.g. "Mine (CBC): Everyone" lets anyone's cannons break blocks even
+while "Allow Blocks By Players" is Nobody); they cannot revoke access granted by
+a general option.
+
 ## Sub-level (VS2 / Sable) compatibility
 
 CBC's `canDamageTerrain` hook maps the impact position through
@@ -90,11 +111,16 @@ Set `debugLogging = true` in this mod's server config
 level:
 
 ```
-[OPAC-CBC] block damage ALLOWED at 120, 64, -40 in minecraft:overworld | projectile=createbigcannons:shot_projectile[.../uuid] accessor=minecraft:player[Agent772/uuid] claim=... | accessor has FULL chunk access to this claim (claim owner, admin mode or server claiming mode) - OPAC allows before claim options or exception groups are checked
+[OPAC-CBC] block damage BLOCKED at 120, 64, -40 in minecraft:overworld | projectile=createbigcannons:shot_projectile[.../uuid] accessor=minecraft:player[Agent772/uuid] claim=... | blocked by the claim's protection options / exception groups | options: blocksRedirect=true allowBlocksByPlayers=N(nobody) "Mine (CBC)"=N(nobody)
 ```
 
 Each line shows the position, the projectile, the resolved accessor (the firing
-player), the claim at the position and *why* the action was allowed or blocked.
+player), the claim at the position, *why* the action was allowed or blocked, and
+the claim config values that decide the verdict: the general "Allow Blocks/
+Entities By Players" option and every entity-access exception group option
+(listed by its UI label, e.g. `"Mine (CBC)"`). If the log says no entity-access
+exception groups are defined, the OPAC server config is missing the
+`blockAccessEntityGroups` / `entityAccessEntityGroups` entries above.
 Disable it again on production servers — a single shot can query many blocks.
 
 ## Known limitations
