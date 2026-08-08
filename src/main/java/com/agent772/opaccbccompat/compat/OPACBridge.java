@@ -98,6 +98,15 @@ public final class OPACBridge {
      * party/ally exceptions and owner redirection apply.
      */
     public static boolean blocksEntityDamage(@Nullable Entity indirectOwner, Entity projectile, Entity target) {
+        return blocksEntityDamage(indirectOwner, projectile, target, "direct hit");
+    }
+
+    /**
+     * Same as {@link #blocksEntityDamage(Entity, Entity, Entity)} but labels the
+     * damage path ("direct hit", "sub-projectile hit", "explosion") in the debug
+     * log so verdicts from different code paths can be told apart.
+     */
+    public static boolean blocksEntityDamage(@Nullable Entity indirectOwner, Entity projectile, Entity target, String pathLabel) {
         if (!OBCServerConfig.protectEntities()) {
             return false;
         }
@@ -117,7 +126,7 @@ public final class OPACBridge {
                     true    // targetExceptions
             );
             if (OBCServerConfig.debugLogging()) {
-                logVerdict("entity damage (target " + describe(target) + ")",
+                logVerdict("entity damage via " + pathLabel + " (target " + describe(target) + ")",
                         protection, projectile, level, target.blockPosition(), blocked, false);
             }
             return blocked;

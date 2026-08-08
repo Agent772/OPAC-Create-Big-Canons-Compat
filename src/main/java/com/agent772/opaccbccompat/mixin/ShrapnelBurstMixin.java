@@ -52,7 +52,7 @@ public abstract class ShrapnelBurstMixin {
             at = @At("HEAD"), cancellable = true)
     private void opaccbccompat$gateEntity(EntityHitResult result, ProjectileBurst.SubProjectile subProjectile, CallbackInfo ci) {
         Projectile self = (Projectile) (Object) this;
-        if (OPACBridge.blocksEntityDamage(self.getOwner(), self, result.getEntity())) {
+        if (OPACBridge.blocksEntityDamage(self.getOwner(), self, result.getEntity(), "sub-projectile hit")) {
             ci.cancel();
         }
     }

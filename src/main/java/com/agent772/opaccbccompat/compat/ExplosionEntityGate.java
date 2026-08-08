@@ -4,6 +4,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.agent772.opaccbccompat.OPACBigCannonsCompat;
 import com.agent772.opaccbccompat.config.OBCServerConfig;
 
 import net.minecraft.server.level.ServerLevel;
@@ -47,12 +48,24 @@ public final class ExplosionEntityGate {
         }
         Explosion explosion = event.getExplosion();
         List<Entity> affected = event.getAffectedEntities();
+        int removed = 0;
+        int restored = 0;
         for (Entity entity : snapshot) {
-            if (!affected.contains(entity)
-                    && !OPACBridge.blocksEntityDamage(
-                            explosion.getIndirectSourceEntity(), explosion.getDirectSourceEntity(), entity)) {
-                affected.add(entity);
+            if (affected.contains(entity)) {
+                continue;
             }
+            removed++;
+            if (!OPACBridge.blocksEntityDamage(
+                    explosion.getIndirectSourceEntity(), explosion.getDirectSourceEntity(), entity, "explosion")) {
+                affected.add(entity);
+                restored++;
+            }
+        }
+        if (removed > 0 && OBCServerConfig.debugLogging()) {
+            OPACBigCannonsCompat.LOGGER.info(
+                    "[OPAC-CBC] OPAC's explosion filter removed {} of {} entities from a CBC explosion at {}; "
+                            + "the attributed re-check restored {} (see the 'entity damage via explosion' verdicts above)",
+                    removed, snapshot.size(), explosion.center(), restored);
         }
     }
 }

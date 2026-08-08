@@ -140,6 +140,13 @@ Entities By Players" option and every entity-access exception group option
 (listed by its UI label, e.g. `"Mine (CBC)"`). If the log says no entity-access
 exception groups are defined, the OPAC server config is missing the
 `blockAccessEntityGroups` / `entityAccessEntityGroups` entries above.
+
+Entity verdicts are labelled with the damage path — `entity damage via direct
+hit`, `via sub-projectile hit` or `via explosion` — so you can tell which code
+path produced them. When OPAC's own explosion filter removes entities from a
+CBC blast, an extra summary line reports how many the attributed re-check
+restored.
+
 Disable it again on production servers — a single shot can query many blocks.
 
 ## Known limitations
