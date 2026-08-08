@@ -138,7 +138,7 @@ dependencies {
 
     // Ritchie's Projectile Library - transitive dependency of CBC. Needed on the compile
     // classpath so the shrapnel/flak burst mixins can reference ProjectileBurst types.
-    compileOnly("maven.modrinth:rpl:${rpl_version}") { transitive = false }
+    implementation("maven.modrinth:rpl:${rpl_version}") { transitive = false }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
