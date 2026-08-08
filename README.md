@@ -92,16 +92,19 @@ The bridge only ever *restores* entities — anything OPAC's own handler
 permits (e.g. "Allow Entities By Explosions": on) stays permitted.
 
 Because it re-checks through the *attack* path, a cannon explosion is treated
-as a **player attack**: the general **"Allow Entities By Players"** option
-governs it too, exactly as it does for block damage. This has a deliberate
-consequence: a claim with **"Allow Entities By Explosions": Nobody** but
-**"Allow Entities By Players": Everyone** (and no restricting "Attack By (CBC)")
-**will** have its entities killed by cannon explosions, because cannon fire
-counts as a player attack rather than a generic explosion. To block explosion
-kills while still allowing player melee, set **"Attack By (CBC)": Nobody** and
-keep "Allow Entities By Players" from granting access. If you want cannon
-explosions to strictly follow the "Allow Entities By Explosions" option instead,
-that is not currently supported — file an issue if you need it.
+as a **player attack** and follows the same options as a melee hit: the general
+**"Allow Entities By Players"** option and **"Attack By (CBC)"** govern it,
+**not** "Allow Entities By Explosions". Since these options can only *grant*
+access, this has a deliberate and unavoidable consequence: a claim with
+**"Allow Entities By Players": Everyone** **will** have its entities killed by
+cannon explosions even if **"Allow Entities By Explosions": Nobody** and
+**"Attack By (CBC)": Nobody** — the general "Everyone" grants access that the
+other two cannot revoke. In other words, you cannot allow player melee on
+entities while blocking cannon-explosion damage through these options; both are
+the same attack path. To block cannon-explosion entity damage, "Allow Entities
+By Players" (and "Attack By (CBC)") must not grant access. If you need cannon
+explosions to instead follow the "Allow Entities By Explosions" option, that is
+not currently supported — file an issue.
 
 ## Sub-level (VS2 / Sable) compatibility
 
