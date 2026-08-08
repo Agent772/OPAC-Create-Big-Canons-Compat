@@ -73,6 +73,16 @@ doesn't stop your pickaxe, it won't stop your shell either.
 claiming mode first), otherwise settings like "Break CBC: Nobody" will appear
 not to work.
 
+### Client-side prediction (ghost holes)
+
+CBC destroys penetrated blocks on **both** the server and the client — the client
+predicts the destruction locally to hide latency. When OPAC blocks a penetration
+on the server, the client has already removed the block, which used to leave a
+client-only "ghost hole" in the wall (walk up to it, relog, or F3+A and the block
+reappears — it was never gone on the server). The bridge now resends the real
+block state whenever it blocks a penetration, so the block may flicker for a
+moment on impact but stays intact.
+
 ### Debug logging
 
 Set `debugLogging = true` in this mod's server config

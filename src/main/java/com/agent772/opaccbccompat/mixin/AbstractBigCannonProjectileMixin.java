@@ -40,6 +40,11 @@ public abstract class AbstractBigCannonProjectileMixin {
         if (level instanceof ServerLevel serverLevel) {
             BlockPos realPos = CBCCompatTransformers.transformBlockPos(level, pos);
             if (OPACBridge.blocksBlockDamage((Projectile) (Object) this, serverLevel, realPos)) {
+                // CBC predicts penetration on the client (calculateBlockPenetration
+                // sets the block to air on both sides), so blocking it only on the
+                // server leaves a ghost hole on clients. Resend the real state so
+                // the protected block stays visible.
+                serverLevel.getChunkSource().blockChanged(pos);
                 return false;
             }
         }
