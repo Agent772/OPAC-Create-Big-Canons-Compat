@@ -123,6 +123,8 @@ configurations {
 }
 
 dependencies {
+    localRuntime("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
+    localRuntime("maven.modrinth:jade:${jade_version}")
     // Create mod dependencies
     implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
@@ -135,6 +137,10 @@ dependencies {
 
     // Create: Big Cannons - required dependency (projectile block/entity damage)
     implementation("maven.modrinth:create-big-cannons:${cbc_version}") { transitive = false }
+
+    // Ritchie's Projectile Library - transitive dependency of CBC. Needed on the compile
+    // classpath so the shrapnel/flak burst mixins can reference ProjectileBurst types.
+    implementation("maven.modrinth:rpl:${rpl_version}") { transitive = false }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

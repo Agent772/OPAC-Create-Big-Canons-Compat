@@ -1,3 +1,3 @@
-// Mixins live here. Populated in issue #1; the package is kept so the mixin
-// config in opaccbccompat.mixins.json has a valid target package.
+// Mixins bridging Create: Big Cannons' custom destruction paths into OPAC's
+// chunk protection. Registered in opaccbccompat.mixins.json.
 package com.agent772.opaccbccompat.mixin;
