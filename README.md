@@ -117,6 +117,32 @@ normal world this transform is an identity no-op.
 
 ## Testing and troubleshooting
 
+### Minimum smoke test
+
+If you just want to confirm a build still works (rather than run the full test
+matrix), these few cases exercise every runtime-behaviour change and fail
+loudly if something regressed:
+
+1. **Owner attribution** – with `blockAccessEntityGroups = [ "break$CBC{createbigcannons:*}" ]`
+   and "Mine (CBC)" set to allow you, fire a **big cannon** *and* an
+   **autocannon** into your **own** claim → blocks break. If attribution
+   broke, the owner exception would not apply and the blocks would be spared.
+2. **Burst attribution** – fire a **shrapnel** or **flak** shell that bursts
+   over your own claim → sub-projectiles are allowed (owner propagated to the
+   burst).
+3. **Ghost holes** – fire an **autocannon** and a **shrapnel** burst into
+   *another* player's protected claim, then relog / F3+A → the wall is intact
+   both before and after. Detonate a shell against a protected wall and relog
+   → no cracking/denting survives.
+4. **Death message** – cannon-kill a mob you are allowed to hit and read chat
+   → a proper sentence, not a raw `death.attack.…` key.
+5. **Config screen** – open this mod's config → "Debug Logging" shows a
+   label, not a raw translation key.
+
+Everything else (nullability, the warn-once fail-open log, the explosion-gate
+leak/perf fix, the version-range bound) is behaviour-preserving or
+log/metadata-only and does not need a dedicated in-game check.
+
 ### Players with full chunk access always get through
 
 OPAC grants some players **full access** to a claim, and for them every action is
