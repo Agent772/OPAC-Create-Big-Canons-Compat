@@ -77,6 +77,23 @@ option — its value still defaults to **Nobody**. After a restart, open the
 claim config and set "Mine (CBC)" / "Attack By (CBC)" to the players you want
 to allow.
 
+By default the new options are grayed out in the claim config UI, meaning
+players cannot change them. To let claim owners toggle them, add the option
+IDs to the `playerConfigurablePlayerConfigOptions` list in the same file:
+
+```toml
+playerConfigurablePlayerConfigOptions = [
+    # ... existing entries ...
+    "claims.protection.exceptions.groups.entity.blockBreakAccess.CBC",
+    "claims.protection.exceptions.groups.entity.entityAttackAccess.CBC"
+]
+```
+
+The `break$` prefix in `break$CBC{...}` changes the option path from
+`blockAccess` / `entityAccess` to `blockBreakAccess` / `entityAttackAccess`.
+Groups without the `break$` prefix (e.g. `Villagers{minecraft:villager}`)
+use `blockAccess` / `entityAccess` instead.
+
 ### Explosion entity damage
 
 CBC shells hurt entities in two ways: a direct projectile hit and the shell's
