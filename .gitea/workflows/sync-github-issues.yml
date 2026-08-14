@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Sync issues from GitHub
         env:
-          GH_REPO: "Agent772/-OPAC-Create-Big-Canons-Compat"
+          GH_REPO: "Agent772/OPAC-Create-Big-Canons-Compat"
           GITEA_REPO: "Agent772/OPAC-Create-Big-Canons-Compat"
           GITEA_TOKEN: ${{ github.token }}
         run: |
