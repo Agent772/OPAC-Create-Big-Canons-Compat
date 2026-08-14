@@ -1,7 +1,5 @@
 package com.agent772.opaccbccompat.compat;
 
-import com.agent772.opaccbccompat.config.OBCServerConfig;
-
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -58,12 +56,10 @@ public final class AttributedDamageSource extends DamageSource {
 
     /**
      * Attributes {@code source} to {@code projectile} (and its owner, if any).
-     * Sources that already carry an entity are returned unchanged, as is
-     * everything when entity protection is disabled.
+     * Sources that already carry an entity are returned unchanged.
      */
     public static DamageSource attribute(DamageSource source, Entity projectile) {
-        if (!OBCServerConfig.protectEntities()
-                || source.getDirectEntity() != null || source.getEntity() != null) {
+        if (source.getDirectEntity() != null || source.getEntity() != null) {
             return source;
         }
         Entity owner = projectile instanceof Projectile p ? p.getOwner() : null;

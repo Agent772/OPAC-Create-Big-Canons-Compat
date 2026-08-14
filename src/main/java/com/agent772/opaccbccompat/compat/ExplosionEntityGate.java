@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 import com.agent772.opaccbccompat.OPACBigCannonsCompat;
-import com.agent772.opaccbccompat.config.OBCServerConfig;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -54,8 +53,7 @@ public final class ExplosionEntityGate {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void beforeProtection(ExplosionEvent.Detonate event) {
         if (!(event.getLevel() instanceof ServerLevel)
-                || !(event.getExplosion() instanceof CustomExplosion)
-                || !OBCServerConfig.protectEntities()) {
+                || !(event.getExplosion() instanceof CustomExplosion)) {
             return;
         }
         snapshots.put(event.getExplosion(), List.copyOf(event.getAffectedEntities()));
@@ -86,7 +84,7 @@ public final class ExplosionEntityGate {
                 restored++;
             }
         }
-        if (removed > 0 && OBCServerConfig.debugLogging()) {
+        if (removed > 0 && OPACBigCannonsCompat.DEBUG_LOGGING) {
             OPACBigCannonsCompat.LOGGER.info(
                     "[OPAC-CBC] OPAC's explosion filter removed {} of {} entities from a CBC explosion at {}; "
                             + "the attributed re-check restored {} (see the 'entity damage via explosion' verdicts above)",

@@ -11,16 +11,13 @@ protection API so that OPAC's existing per-claim options decide what happens.
 
 ## How it works
 
-Two master switches live in this mod's config (`opaccbccompat`):
-
-- **Protect Blocks** – route CBC block destruction through OPAC.
-- **Protect Entities** – route CBC entity damage through OPAC.
-
-These are only on/off switches. When a switch is on, **all** of the granular control
-lives in OPAC itself — the per-claim block/entity protection toggles, the
-wilderness / server-claim / expired-claim settings, and admin-defined exception
-groups. When a switch is off, cannons behave as they do in vanilla CBC (destroy
-everything).
+This mod has **no config of its own**. Simply installing it activates the bridge:
+CBC block destruction and entity damage are routed through OPAC. **All** of the
+granular control lives in OPAC itself — the per-claim block/entity protection
+toggles, the wilderness / server-claim / expired-claim settings, and admin-defined
+exception groups (see the [Recommended OPAC server config](#recommended-opac-server-config)
+section below). If you previously turned the bridge off through this mod's config,
+that is no longer possible; uninstall the mod instead.
 
 Fired projectiles are tagged with the player who fired them (CBC leaves them
 anonymous), so OPAC's party/ally exceptions and owner redirection apply to cannon
@@ -118,6 +115,26 @@ the same attack path. To block cannon-explosion entity damage, "Allow Entities
 By Players" (and "Attack By (CBC)") must not grant access. If you need cannon
 explosions to instead follow the "Allow Entities By Explosions" option, that is
 not currently supported — file an issue.
+
+## Debug logging
+
+The bridge can log every OPAC protection verdict for CBC projectile damage — the
+queried position, the projectile, its resolved owner, the claim and why the action
+was allowed or blocked. It is **off by default**. Enable it by adding
+
+```
+-Dopaccbccompat.debugLogging=true
+```
+
+to the server's JVM arguments; the `[OPAC-CBC]` lines then appear in `latest.log`
+at `INFO`. The flag is read once at startup, so when it is off the verdict logging
+does no work at all (no OPAC lookups, no string building). A single shot can query
+many blocks and the lines contain player names and UUIDs, so leave it disabled on
+production servers unless you are diagnosing a protection setup.
+
+> **Upgrading from an earlier version:** this mod used to register its own
+> `serverconfig/opaccbccompat-server.toml`. That config has been removed. Any
+> leftover file in an existing world is simply ignored and can be deleted.
 
 ## Known limitations
 

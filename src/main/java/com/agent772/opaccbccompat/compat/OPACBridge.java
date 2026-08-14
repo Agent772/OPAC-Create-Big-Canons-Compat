@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 
 import com.agent772.opaccbccompat.OPACBigCannonsCompat;
-import com.agent772.opaccbccompat.config.OBCServerConfig;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -57,7 +56,7 @@ public final class OPACBridge {
     public static void attributeOwner(Entity projectile, @Nullable Entity owner) {
         if (owner != null && projectile instanceof Projectile p && p.getOwner() == null) {
             p.setOwner(owner);
-        } else if (OBCServerConfig.debugLogging()) {
+        } else if (OPACBigCannonsCompat.DEBUG_LOGGING) {
             String reason;
             if (owner == null) {
                 reason = "no firing player (e.g. redstone-triggered cannon) - projectile stays anonymous";
@@ -66,7 +65,7 @@ public final class OPACBridge {
             } else {
                 reason = "projectile already has an owner";
             }
-            OPACBigCannonsCompat.LOGGER.debug(
+            OPACBigCannonsCompat.LOGGER.info(
                     "[OPAC-CBC] owner attribution skipped for {}: {}", describe(projectile), reason);
         }
     }
@@ -101,9 +100,6 @@ public final class OPACBridge {
      * treated as an anonymous action with no claim access.
      */
     public static boolean blocksBlockDamage(@Nullable Entity source, ServerLevel level, BlockPos pos) {
-        if (!OBCServerConfig.protectBlocks()) {
-            return false;
-        }
         try {
             IChunkProtectionAPI protection = protectionFor(level);
             if (protection == null) {
@@ -116,7 +112,7 @@ public final class OPACBridge {
                     false,  // messages
                     true    // targetExceptions (enables admin exception groups)
             );
-            if (OBCServerConfig.debugLogging()) {
+            if (OPACBigCannonsCompat.DEBUG_LOGGING) {
                 logVerdict("block damage", protection, source, level, pos, blocked, true);
             }
             return blocked;
@@ -146,9 +142,6 @@ public final class OPACBridge {
      * log so verdicts from different code paths can be told apart.
      */
     public static boolean blocksEntityDamage(@Nullable Entity indirectOwner, @Nullable Entity projectile, Entity target, String pathLabel) {
-        if (!OBCServerConfig.protectEntities()) {
-            return false;
-        }
         if (!(target.level() instanceof ServerLevel level)) {
             return false;
         }
@@ -164,7 +157,7 @@ public final class OPACBridge {
                     false,  // messages
                     true    // targetExceptions
             );
-            if (OBCServerConfig.debugLogging()) {
+            if (OPACBigCannonsCompat.DEBUG_LOGGING) {
                 logVerdict("entity damage via " + pathLabel + " (target " + describe(target) + ")",
                         protection, projectile, level, target.blockPosition(), blocked, false);
             }
@@ -225,7 +218,7 @@ public final class OPACBridge {
                     level.dimension().location(), describe(source), describe(accessor),
                     claim == null ? "none" : claim.getPlayerId(), reason, options);
         } catch (Throwable t) {
-            OPACBigCannonsCompat.LOGGER.debug("Failed to log OPAC verdict", t);
+            OPACBigCannonsCompat.LOGGER.info("Failed to log OPAC verdict", t);
         }
     }
 
@@ -299,9 +292,6 @@ public final class OPACBridge {
      * wilderness blocks in the same blast still break.
      */
     public static void filterExplosionBlocks(Explosion explosion, ServerLevel level) {
-        if (!OBCServerConfig.protectBlocks()) {
-            return;
-        }
         List<BlockPos> toBlow = explosion.getToBlow();
         if (toBlow.isEmpty()) {
             return;
