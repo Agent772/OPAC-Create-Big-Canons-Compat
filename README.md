@@ -43,8 +43,8 @@ players' claims, add CBC's entities to OPAC's exception groups in
 `serverconfig/openpartiesandclaims-server.toml`:
 
 ```toml
-blockAccessEntityGroups = [ "break$CBC{createbigcannons:*}" ]
-entityAccessEntityGroups = [ "break$CBC{createbigcannons:*}" ]
+blockAccessEntityGroups = [ "CBC{createbigcannons:*}" ]
+entityAccessEntityGroups = [ "CBC{createbigcannons:*}" ]
 ```
 
 With the projectile owner attributed, OPAC treats a cannon shot like an action by
@@ -53,14 +53,14 @@ claims stay protected.
 
 These two lists create per-claim options that appear in the claim config UI as:
 
-- **"Mine (CBC)"** – from `blockAccessEntityGroups`: which players' CBC
+- **"Blocks (CBC)"** – from `blockAccessEntityGroups`: which players' CBC
   projectiles may break blocks in the claim.
-- **"Attack By (CBC)"** – from `entityAccessEntityGroups`: which players' CBC
+- **"Entities By (CBC)"** – from `entityAccessEntityGroups`: which players' CBC
   projectiles may damage entities in the claim.
 
 The lists take **entity** IDs. Take care not to put the entry into
 `blockExceptionGroups` instead — that list takes **block** IDs and creates a
-**"Break (CBC)"** option, which controls who may break *CBC's own blocks* (cannon
+**"Blocks (CBC)"** option, which controls who may break *CBC's own blocks* (cannon
 parts) in the claim and has no effect on what cannon fire can destroy.
 
 These group options are checked *in addition to* OPAC's general exception
@@ -74,7 +74,7 @@ a general option.
 
 Note that adding a group to the server config only *creates* the per-claim
 option — its value still defaults to **Nobody**. After a restart, open the
-claim config and set "Mine (CBC)" / "Attack By (CBC)" to the players you want
+claim config and set "Block (CBC)" / "Entity By (CBC)" to the players you want
 to allow.
 
 By default the new options are grayed out in the claim config UI, meaning
@@ -84,15 +84,11 @@ IDs to the `playerConfigurablePlayerConfigOptions` list in the same file:
 ```toml
 playerConfigurablePlayerConfigOptions = [
     # ... existing entries ...
-    "claims.protection.exceptions.groups.entity.blockBreakAccess.CBC",
-    "claims.protection.exceptions.groups.entity.entityAttackAccess.CBC"
+    "claims.protection.exceptions.groups.entity.blockAccess.CBC", 
+    "claims.protection.exceptions.groups.entity.entityAccess.CBC"
 ]
 ```
 
-The `break$` prefix in `break$CBC{...}` changes the option path from
-`blockAccess` / `entityAccess` to `blockBreakAccess` / `entityAttackAccess`.
-Groups without the `break$` prefix (e.g. `Villagers{minecraft:villager}`)
-use `blockAccess` / `entityAccess` instead.
 
 ### Explosion entity damage
 
@@ -122,105 +118,6 @@ the same attack path. To block cannon-explosion entity damage, "Allow Entities
 By Players" (and "Attack By (CBC)") must not grant access. If you need cannon
 explosions to instead follow the "Allow Entities By Explosions" option, that is
 not currently supported — file an issue.
-
-## Sub-level (VS2 / Sable) compatibility
-
-CBC's `canDamageTerrain` hook maps the impact position through
-`CBCCompatTransformers.transformBlockPos` before checking damage, which is how CBC
-supports Valkyrien Skies 2 / Sable sub-levels (real blocks stored at extreme
-coordinates in the same level). The block-penetration mixins apply the same
-transform before querying OPAC, so claim checks use world-space coordinates. On a
-normal world this transform is an identity no-op.
-
-## Testing and troubleshooting
-
-### Minimum smoke test
-
-If you just want to confirm a build still works (rather than run the full test
-matrix), these few cases exercise every runtime-behaviour change and fail
-loudly if something regressed:
-
-1. **Owner attribution** – with `blockAccessEntityGroups = [ "break$CBC{createbigcannons:*}" ]`
-   and "Mine (CBC)" set to allow you, fire a **big cannon** *and* an
-   **autocannon** into your **own** claim → blocks break. If attribution
-   broke, the owner exception would not apply and the blocks would be spared.
-2. **Burst attribution** – fire a **shrapnel** or **flak** shell that bursts
-   over your own claim → sub-projectiles are allowed (owner propagated to the
-   burst).
-3. **Ghost holes** – fire an **autocannon** and a **shrapnel** burst into
-   *another* player's protected claim, then relog / F3+A → the wall is intact
-   both before and after. Detonate a shell against a protected wall and relog
-   → no cracking/denting survives.
-4. **Death message** – cannon-kill a mob you are allowed to hit and read chat
-   → a proper sentence, not a raw `death.attack.…` key.
-5. **Config screen** – open this mod's config → "Debug Logging" shows a
-   label, not a raw translation key.
-
-Everything else (nullability, the warn-once fail-open log, the explosion-gate
-leak/perf fix, the version-range bound) is behaviour-preserving or
-log/metadata-only and does not need a dedicated in-game check.
-
-### Players with full chunk access always get through
-
-OPAC grants some players **full access** to a claim, and for them every action is
-allowed *before* the claim's protection options or exception groups are even
-consulted — exception groups can only grant access to players who lack it, never
-revoke it. A player has full access to a claim when:
-
-- they **own** the claim,
-- they are in **admin mode** (`/opm-admin`), or
-- the claim is a **server claim** and they are in server claiming mode with the
-  server claim permission (typically the operator who created the claim).
-
-Because projectiles are attributed to the player who fired them, the same applies
-to cannon fire: **if you can break a block by hand inside the claim, your cannon
-can break it too.** A quick equivalence check: try mining the block — if OPAC
-doesn't stop your pickaxe, it won't stop your shell either.
-
-**Test protection with a non-privileged account** (or leave admin / server
-claiming mode first), otherwise settings like "Break CBC: Nobody" will appear
-not to work.
-
-### Client-side prediction (ghost holes)
-
-CBC destroys penetrated blocks on **both** the server and the client — the client
-predicts the destruction locally to hide latency. When OPAC blocks a penetration
-on the server, the client has already removed the block, which used to leave a
-client-only "ghost hole" in the wall (walk up to it, relog, or F3+A and the block
-reappears — it was never gone on the server). The bridge now resends the real
-block state whenever it blocks a hit, so the block may flicker for a moment on
-impact but stays intact. This resync covers **all** client-predicted block paths:
-big-cannon and autocannon penetration, shrapnel terrain hits, and the cosmetic
-cracking/denting CBC explosions apply along their blast.
-
-### Debug logging
-
-Set `debugLogging = true` in this mod's server config
-(`serverconfig/opaccbccompat-server.toml`) to log every OPAC verdict at INFO
-level:
-
-```
-[OPAC-CBC] block damage BLOCKED at 120, 64, -40 in minecraft:overworld | projectile=createbigcannons:shot_projectile[.../uuid] accessor=minecraft:player[Agent772/uuid] claim=... | blocked by the claim's protection options / exception groups | options: blocksRedirect=true allowBlocksByPlayers=N(nobody) "Mine (CBC)"=N(nobody)
-```
-
-Each line shows the position, the projectile, the resolved accessor (the firing
-player), the claim at the position, *why* the action was allowed or blocked, and
-the claim config values that decide the verdict: the general "Allow Blocks/
-Entities By Players" option and every entity-access exception group option
-(listed by its UI label, e.g. `"Mine (CBC)"`). If the log says no entity-access
-exception groups are defined, the OPAC server config is missing the
-`blockAccessEntityGroups` / `entityAccessEntityGroups` entries above.
-
-Entity verdicts are labelled with the damage path — `entity damage via direct
-hit`, `via sub-projectile hit` or `via explosion` — so you can tell which code
-path produced them. When OPAC's own explosion filter removes entities from a
-CBC blast, an extra summary line reports how many the attributed re-check
-restored.
-
-Disable it again on production servers — a single shot can query many blocks.
-Debug lines also write **player names and UUIDs** to the server log; this is the
-same personal data most server logs already contain, but keep it in mind for
-GDPR-conscious deployments.
 
 ## Known limitations
 
