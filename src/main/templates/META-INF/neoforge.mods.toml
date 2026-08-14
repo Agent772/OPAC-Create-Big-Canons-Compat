@@ -20,6 +20,9 @@ version="${mod_version}" #mandatory
 # A display name for the mod
 displayName="${mod_name}" #mandatory
 
+# The relative path to the mod logo inside the JAR
+logoFile="assets/logo.png" #optional
+
 # A text field displayed in the mod UI
 authors="${mod_authors}" #optional
 
