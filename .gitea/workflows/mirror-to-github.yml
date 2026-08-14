@@ -17,4 +17,4 @@ jobs:
       - name: Push to GitHub
         run: |
           git remote add github https://Agent772:${{ secrets.GITHUB }}@github.com/Agent772/OPAC-Create-Big-Canons-Compat.git
-          git push --force github HEAD:${{ github.ref_name }}
+          git push github HEAD:${{ github.ref_name }}
